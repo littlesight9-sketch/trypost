@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Middleware\App;
 
 use App\Models\Invite;
+use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -14,6 +15,12 @@ class EnsureRegistrationEnabled
     public function handle(Request $request, Closure $next): mixed
     {
         if (! config('trypost.self_hosted')) {
+            return $next($request);
+        }
+
+        // The first account claims a fresh instance: without it nobody could
+        // ever sign in, and an invite can only be sent from inside the app.
+        if (! User::query()->exists()) {
             return $next($request);
         }
 

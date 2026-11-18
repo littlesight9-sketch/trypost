@@ -104,16 +104,18 @@ test('new users registering via invite have verified email automatically', funct
     expect($user->email_verified_at)->not->toBeNull();
 });
 
-test('register page returns 404 when self_hosted and no pending invite in session', function () {
+test('register page returns 404 when self_hosted, an account exists and no pending invite in session', function () {
     config()->set('trypost.self_hosted', true);
+    User::factory()->create();
 
     $response = $this->get(route('register'));
 
     $response->assertNotFound();
 });
 
-test('register POST returns 404 when self_hosted and no pending invite in session', function () {
+test('register POST returns 404 when self_hosted, an account exists and no pending invite in session', function () {
     config()->set('trypost.self_hosted', true);
+    User::factory()->create();
 
     $response = $this->post(route('register.store'), [
         'name' => 'Test User',
@@ -194,4 +196,35 @@ test('register works normally when not self_hosted even with pending invite in s
     expect(User::where('email', 'invitee@example.com')->exists())->toBeTrue();
     // Cleared regardless of mode, since signup consumes the marker.
     expect(session('pending_invite_id'))->toBeNull();
+});
+
+test('the first account can register on a self-hosted instance', function () {
+    config()->set('trypost.self_hosted', true);
+
+    $this->get(route('register'))->assertOk();
+
+    $response = $this->post(route('register.store'), [
+        'name' => 'Owner',
+        'email' => 'owner@example.com',
+        'password' => strongPassword(),
+        'locale' => 'en',
+    ]);
+
+    $response->assertSessionHasNoErrors();
+    expect(User::where('email', 'owner@example.com')->exists())->toBeTrue();
+});
+
+test('registration on a self-hosted instance needs an invite once the first account exists', function () {
+    config()->set('trypost.self_hosted', true);
+    User::factory()->create();
+
+    $response = $this->post(route('register.store'), [
+        'name' => 'Late User',
+        'email' => 'late@example.com',
+        'password' => strongPassword(),
+        'locale' => 'en',
+    ]);
+
+    $response->assertNotFound();
+    expect(User::where('email', 'late@example.com')->exists())->toBeFalse();
 });

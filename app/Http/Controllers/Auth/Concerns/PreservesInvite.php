@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Auth\Concerns;
 
 use App\Models\Invite;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -27,13 +28,14 @@ trait PreservesInvite
 
     /**
      * Mirrors the registration.enabled middleware: self-hosted requires a
-     * real invite to register.
+     * real invite to register, except for the first account that claims a
+     * fresh instance.
      */
     private function resolveInviteForRegistration(): ?Invite
     {
         $invite = Invite::fromId($this->retrieveInvite());
 
-        if ((bool) config('trypost.self_hosted') && ! $invite) {
+        if ((bool) config('trypost.self_hosted') && ! $invite && User::query()->exists()) {
             throw new NotFoundHttpException;
         }
 

@@ -188,6 +188,9 @@ FROM system-base AS production
 COPY docker/nginx.conf /etc/nginx/http.d/default.conf
 COPY docker/php.prod.ini /usr/local/etc/php/conf.d/99-trypost.ini
 COPY docker/supervisord.prod.conf /etc/supervisor/conf.d/supervisord.conf
+# Platform profile without Redis/Reverb/Horizon (Render), selected with
+# TRYPOST_SUPERVISOR_CONF=/etc/supervisor/conf.d/supervisord.render.conf.
+COPY docker/supervisord.render.conf /etc/supervisor/conf.d/supervisord.render.conf
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 

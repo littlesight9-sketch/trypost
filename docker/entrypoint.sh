@@ -7,6 +7,13 @@ cd /var/www/html
 
 TARGET="${TRYPOST_TARGET:-dev}"
 
+# Platforms such as Render route traffic to the port they assign in $PORT.
+# nginx ships listening on 80, so move it when a different port is asked for.
+if [ -n "${PORT:-}" ] && [ "${PORT}" != "80" ]; then
+    echo "[entrypoint] nginx listening on port ${PORT}"
+    sed -i "s/listen 80;/listen ${PORT};/; s/listen \[::\]:80;/listen [::]:${PORT};/" /etc/nginx/http.d/default.conf
+fi
+
 # One-off commands from `docker compose run app ...` must bypass the long-lived
 # application bootstrap and execute exactly as requested.
 if [ "$#" -gt 0 ]; then
@@ -35,7 +42,7 @@ fi
 # 2) Skip-bootstrap escape hatch for advanced users.
 if [ "${TRYPOST_SKIP_BOOTSTRAP:-0}" = "1" ]; then
     echo "[entrypoint] TRYPOST_SKIP_BOOTSTRAP=1 — exec'ing supervisord without setup"
-    exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
+    exec /usr/bin/supervisord -c "${TRYPOST_SUPERVISOR_CONF:-/etc/supervisor/conf.d/supervisord.conf}"
 fi
 
 # 3) Re-install composer deps if vendor was wiped (down -v in dev).
@@ -93,6 +100,11 @@ fi
 # files under storage/ only for local/dev when those env vars are unset.
 if [ -n "${PASSPORT_PRIVATE_KEY:-}" ] && [ -n "${PASSPORT_PUBLIC_KEY:-}" ]; then
     echo "[entrypoint] using Passport keys from environment"
+    # Materialize the PEMs (env values usually carry literal \n) so anything
+    # reading storage/oauth-*.key agrees with the configured pair.
+    umask 077
+    printf '%b\n' "${PASSPORT_PRIVATE_KEY}" > storage/oauth-private.key
+    printf '%b\n' "${PASSPORT_PUBLIC_KEY}" > storage/oauth-public.key
 elif [ "${TRYPOST_TARGET:-}" = "production" ] || [ "${APP_ENV:-}" = "production" ]; then
     echo "[entrypoint] ERROR: PASSPORT_PRIVATE_KEY and PASSPORT_PUBLIC_KEY must be set in production." >&2
     echo "[entrypoint] Generate once with: php artisan passport:keys --show" >&2
@@ -137,4 +149,4 @@ else
 fi
 
 echo "[entrypoint] ready — handing off to supervisord"
-exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
+exec /usr/bin/supervisord -c "${TRYPOST_SUPERVISOR_CONF:-/etc/supervisor/conf.d/supervisord.conf}"

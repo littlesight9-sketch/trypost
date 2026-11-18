@@ -27,6 +27,12 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->encryptCookies(except: ['sidebar_state']);
 
+        $trustedProxies = config('trypost.trusted_proxies');
+
+        if (filled($trustedProxies)) {
+            $middleware->trustProxies(at: $trustedProxies);
+        }
+
         $middleware->web(append: [
             SetLocale::class,
             CaptureOffer::class,

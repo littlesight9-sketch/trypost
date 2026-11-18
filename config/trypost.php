@@ -26,6 +26,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Trusted Proxies
+    |--------------------------------------------------------------------------
+    |
+    | The addresses of the load balancer in front of the app (`*` for any),
+    | so the scheme and host of a request come from its forwarded headers.
+    | A platform such as Render terminates TLS at its edge and forwards
+    | plain HTTP, so without this every generated URL is `http://`.
+    |
+    */
+
+    'trusted_proxies' => env('TRUSTED_PROXIES'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Changelog ("What's New")
     |--------------------------------------------------------------------------
     |

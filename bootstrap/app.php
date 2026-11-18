@@ -27,7 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->encryptCookies(except: ['sidebar_state']);
 
-        $trustedProxies = config('trypost.trusted_proxies');
+        $trustedProxies = env('TRUSTED_PROXIES');
 
         if (filled($trustedProxies)) {
             $middleware->trustProxies(at: $trustedProxies);
